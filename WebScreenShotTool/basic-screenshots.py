@@ -8,21 +8,31 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from PIL import Image, ImageDraw, ImageFont
-import requests
-import sys
-import time
-import re
-import os
+import sys, time,re,os,requests
 
 def sanitize_filename(filename):
     return re.sub(r'[^\w\d_]', '_', filename)
 
+def add_black_border(image, border_height=50):
+    width, height = image.size
+    new_height = height + border_height
+    new_image = Image.new("RGB", (width, new_height), "black")
+    new_image.paste(image, (0, border_height))
+    return new_image
+
 def take_screenshot(driver, url, sub_url, file_name, folder_name):
     full_url = f"{url}{sub_url}"
-    driver.get(full_url)
+    response_code = None
     
-    # Set the zoom level to 110%
-    driver.execute_script("document.body.style.zoom='110%'")
+    try:
+        # Fetch the HTTP response code using Python's requests library
+        response = requests.head(full_url, allow_redirects=True)
+        response_code = response.status_code
+    except requests.RequestException as e:
+        print(f"An error occurred while fetching HTTP status for {full_url}: {e}")
+    
+    driver.get(full_url)
+    driver.execute_script("document.body.style.zoom='120%'")
     
     try:
         WebDriverWait(driver, 10).until(
@@ -31,34 +41,29 @@ def take_screenshot(driver, url, sub_url, file_name, folder_name):
     except Exception as e:
         print(f"An error occurred while waiting for the page {full_url} to load: {e}")
 
-    # Get the response code using requests
-    response_code = None
-    try:
-        response = requests.get(full_url)
-        response_code = response.status_code
-    except Exception as e:
-        print(f"Could not get the response code for {full_url}: {e}")
-
     screenshot_name = os.path.join(folder_name, sanitize_filename(file_name) + '.png')
     driver.save_screenshot(screenshot_name)
     
     screenshot = Image.open(screenshot_name)
-    draw = ImageDraw.Draw(screenshot)
-    font = ImageFont.truetype("MartianMono-SemiBold.ttf", 12)
+    screenshot_with_border = add_black_border(screenshot)
+    
+    draw = ImageDraw.Draw(screenshot_with_border)
+    font = ImageFont.truetype("MartianMono-SemiBold.ttf", 14)
     draw.text((10, 10), f"URL: {full_url}", font=font, fill="red")
-    if response_code:
+    
+    if response_code is not None:
         draw.text((10, 30), f"Response Code: {response_code}", font=font, fill="red")
-    screenshot.save(screenshot_name, dpi=(1000, 1000))
-
+    
+    screenshot_with_border.save(screenshot_name, dpi=(1000, 1000))
     print(f"Screenshot saved for {sub_url}")
 
 def main(url):
-    # Remove the trailing '/' if it exists
     url = url.rstrip('/')
     
     chrome_options = Options()
     chrome_options.add_argument("--disable-infobars")
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--log-level=3")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
     
@@ -67,6 +72,7 @@ def main(url):
     
     timestamp = str(int(time.time()))
     folder_name = f"{timestamp}_screenshots"
+    print("Folder Name : ", folder_name+"_screenshots")
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
     
