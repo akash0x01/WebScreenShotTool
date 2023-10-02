@@ -1,6 +1,13 @@
 # WebScreenShotTool
 A Python script that uses Selenium to take screenshots of basic enum pages like robots.txt. The script sets the zoom level, waits for the page to load, gets the response code, saves the screenshot, and adds text overlays. The main function takes a website URL as input and saves the screenshots in a timestamped folder.
 
+**Basic functional required packages are below**
+```
+pip install selenium Pillow requests
+```
+**Additionally MartianMono-SemiBold Font File need to be present in same folder of this program to successfully annotate the screenshots.**
+This can be downloaded from: https://fonts.google.com/specimen/Martian+Mono
+
 **Usage:**
 ```bash
 python script.py https://www.google.com/
