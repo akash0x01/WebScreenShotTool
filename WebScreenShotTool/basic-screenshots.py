@@ -9,6 +9,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from PIL import Image, ImageDraw, ImageFont
 import sys, time,re,os,requests
+import urllib3
+
+# Disable SSL related warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def sanitize_filename(filename):
     return re.sub(r'[^\w\d_]', '_', filename)
@@ -26,7 +30,8 @@ def take_screenshot(driver, url, sub_url, file_name, folder_name):
     
     try:
         # Fetch the HTTP response code using Python's requests library
-        response = requests.head(full_url, allow_redirects=True)
+        # response = requests.head(full_url, allow_redirects=True)
+        response = requests.head(full_url, allow_redirects=True, verify=False) # verify set to false to bypass Burp Certificates
         response_code = response.status_code
     except requests.RequestException as e:
         print(f"An error occurred while fetching HTTP status for {full_url}: {e}")
